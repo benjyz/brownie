@@ -31,43 +31,7 @@ from . import state
 from .event import EventDict, _decode_logs, _decode_trace
 from .web3 import web3
 
-
-def trace_property(fn: Callable) -> Any:
-    # attributes that are only available after querying the tranasaction trace
-
-    @property  # type: ignore
-    def wrapper(self: "TransactionReceipt") -> Any:
-        if self.status < 0:
-            return None
-        if self._trace_exc is not None:
-            raise self._trace_exc
-        try:
-            return fn(self)
-        except RPCRequestError as exc:
-            if web3.supports_traces:
-                # if the node client supports traces, raise the actual error
-                raise exc
-            raise RPCRequestError(
-                f"Accessing `TransactionReceipt.{fn.__name__}` on a {self.status.name.lower()} "
-                "transaction requires the `debug_traceTransaction` RPC endpoint, but the node "
-                "client does not support it or has not made it available."
-            ) from None
-
-    return wrapper
-
-
-def trace_inspection(fn: Callable) -> Any:
-    def wrapper(self: "TransactionReceipt", *args: Any, **kwargs: Any) -> Any:
-        if self.contract_address:
-            raise NotImplementedError(
-                "Trace inspection methods are not available for deployment transactions."
-            )
-        if self.input == "0x" and self.gas_used == 21000:
-            return None
-        return fn(self, *args, **kwargs)
-
-    functools.update_wrapper(wrapper, fn)
-    return wrapper
+from brownie.network.trace import trace_property
 
 
 class Status(IntEnum):

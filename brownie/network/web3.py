@@ -17,6 +17,8 @@ from brownie.convert import to_address
 from brownie.exceptions import MainnetUndefined, UnsetENSName
 from brownie.network.middlewares import get_middlewares
 
+from brownie.network.trace import supports_traces
+
 _chain_uri_cache: Dict = {}
 
 
@@ -119,12 +121,8 @@ class Web3(_Web3):
         if not self.provider:
             return False
 
-        # Send a malformed request to `debug_traceTransaction`. If the error code
-        # returned is -32601 "endpoint does not exist/is not available" we know
-        # traces are not possible. Any other error code means the endpoint is open.
         if self._supports_traces is None:
-            response = self.provider.make_request("debug_traceTransaction", [])
-            self._supports_traces = bool(response["error"]["code"] != -32601)
+            self._supports_traces = supports_traces(self.provider)
 
         return self._supports_traces
 
